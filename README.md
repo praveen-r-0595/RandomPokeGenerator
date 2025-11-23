@@ -1,4 +1,4 @@
-# PokéRandomizer Z-A
+# PokéRandomizer
 
 Bored? Randomize some Pokémon. Need a team? Let chance decide. Think you know Pokémon? Prove it.
 
