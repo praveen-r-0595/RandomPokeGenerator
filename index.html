@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PokéRandomizer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #000000; } /* Pure black track */
+        ::-webkit-scrollbar-thumb { background: #262626; border-radius: 4px; } /* Dark grey thumb */
+        ::-webkit-scrollbar-thumb:hover { background: #404040; } /* Slightly lighter hover */
+        
+        /* Type Colors (No change, these are canonical) */
+        .type-bg-normal { background-color: #A8A77A; color: white; }
+        .type-bg-fire { background-color: #EE8130; color: white; }
+        .type-bg-water { background-color: #6390F0; color: white; }
+        .type-bg-electric { background-color: #F7D02C; color: black; }
+        .type-bg-grass { background-color: #7AC74C; color: white; }
+        .type-bg-ice { background-color: #96D9D6; color: black; }
+        .type-bg-fighting { background-color: #C22E28; color: white; }
+        .type-bg-poison { background-color: #A33EA1; color: white; }
+        .type-bg-ground { background-color: #E2BF65; color: black; }
+        .type-bg-flying { background-color: #A98FF3; color: white; }
+        .type-bg-psychic { background-color: #F95587; color: white; }
+        .type-bg-bug { background-color: #A6B91A; color: white; }
+        .type-bg-rock { background-color: #B6A136; color: white; }
+        .type-bg-ghost { background-color: #735797; color: white; }
+        .type-bg-dragon { background-color: #6F35FC; color: white; }
+        .type-bg-dark { background-color: #705746; color: white; }
+        .type-bg-steel { background-color: #B7B7CE; color: black; }
+        .type-bg-fairy { background-color: #D685AD; color: black; }
+
+        /* Type Text Colors for SVG (Used for the blob color) */
+        .type-text-normal { color: #A8A77A; }
+        .type-text-fire { color: #EE8130; }
+        .type-text-water { color: #6390F0; }
+        .type-text-electric { color: #F7D02C; }
+        .type-text-grass { color: #7AC74C; }
+        .type-text-ice { color: #96D9D6; }
+        .type-text-fighting { color: #C22E28; }
+        .type-text-poison { color: #A33EA1; }
+        .type-text-ground { color: #E2BF65; }
+        .type-text-flying { color: #A98FF3; }
+        .type-text-psychic { color: #F95587; }
+        .type-text-bug { color: #A6B91A; }
+        .type-text-rock { color: #B6A136; }
+        .type-text-ghost { color: #735797; }
+        .type-text-dragon { color: #6F35FC; }
+        .type-text-dark { color: #705746; }
+        .type-text-steel { color: #B7B7CE; }
+        .type-text-fairy { color: #D685AD; }
+        
+        /* Animations */
+        .pokeball-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #ef4444;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+
+        /* Quiz Specific Styling */
+        .silhouette {
+            filter: brightness(0) contrast(0);
+            transition: filter 0.5s ease-in-out;
+        }
+        .revealed {
+            filter: brightness(1) contrast(1);
+        }
+    </style>
+</head>
+<body class="bg-black text-neutral-200 font-sans min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-neutral-900/80 backdrop-blur-sm border-b border-neutral-800 sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-red-500/10 p-2 rounded-full">
+                    <i class="ph-fill ph-pokeball text-red-500 text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-white tracking-tight leading-tight">PokéRandomizer <span class="text-red-500">Z-A</span></h1>
+                    <p class="text-xs text-neutral-500 font-medium">Unofficial Tool</p>
+                </div>
+            </div>
+            <a href="https://github.com" target="_blank" class="text-neutral-400 hover:text-white transition p-2 hover:bg-neutral-800 rounded-lg">
+                <i class="ph-fill ph-github-logo text-2xl"></i>
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-5xl mx-auto px-4 py-8 w-full">
+
+        <!-- Controls Card -->
+        <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-1 shadow-2xl shadow-black/80 mb-8">
+            
+            <!-- 1. Main Tabs: Randomizer, Team Builder, Quiz -->
+            <div class="flex p-1 bg-black/50 rounded-xl border border-neutral-800/50 mb-4 gap-1 hide-scrollbar">
+                <button onclick="switchMainTab('randomizer')" id="main-tab-randomizer" class="main-tab-btn flex-shrink-0 flex-1 py-3 text-sm font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-2 bg-neutral-800 text-white shadow-sm ring-1 ring-white/10">
+                    <i class="ph-fill ph-shuffle text-lg"></i> Randomizer
+                </button>
+                <button onclick="switchMainTab('team')" id="main-tab-team" class="main-tab-btn flex-shrink-0 flex-1 py-3 text-sm font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-2 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50">
+                    <i class="ph-fill ph-users-three text-lg"></i> Team Builder
+                </button>
+                <button onclick="switchMainTab('quiz')" id="main-tab-quiz" class="main-tab-btn flex-shrink-0 flex-1 py-3 text-sm font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-2 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50">
+                    <i class="ph-fill ph-question text-lg"></i> Quiz
+                </button>
+            </div>
+
+            <!-- 2. Randomizer Sub Tabs (Only visible when main-tab is Randomizer) -->
+            <div id="randomizerSubTabs" class="px-5 mb-5 animate-fade-in">
+                <div class="flex overflow-x-auto bg-black/50 rounded-xl border border-neutral-800/50 gap-1 p-1 hide-scrollbar">
+                    <button onclick="switchSubTab('pokemon')" id="sub-tab-pokemon" class="sub-tab-btn flex-shrink-0 flex-1 min-w-[100px] py-2 text-xs md:text-sm font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2 bg-neutral-800 text-white shadow-sm">
+                        <i class="ph-fill ph-paw-print text-base"></i> Pokémon
+                    </button>
+                    <button onclick="switchSubTab('abilities')" id="sub-tab-abilities" class="sub-tab-btn flex-shrink-0 flex-1 min-w-[100px] py-2 text-xs md:text-sm font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50">
+                        <i class="ph-fill ph-lightning text-base"></i> Abilities
+                    </button>
+                    <button onclick="switchSubTab('moves')" id="sub-tab-moves" class="sub-tab-btn flex-shrink-0 flex-1 min-w-[100px] py-2 text-xs md:text-sm font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50">
+                        <i class="ph-fill ph-sword text-base"></i> Moves
+                    </button>
+                    <button onclick="switchSubTab('items')" id="sub-tab-items" class="sub-tab-btn flex-shrink-0 flex-1 min-w-[100px] py-2 text-xs md:text-sm font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50">
+                        <i class="ph-fill ph-bag text-base"></i> Items
+                    </button>
+                    <button onclick="switchSubTab('superRandomPoke')" id="sub-tab-superRandomPoke" class="sub-tab-btn flex-shrink-0 flex-1 min-w-[100px] py-2 text-xs md:text-sm font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50">
+                        <i class="ph-fill ph-magic-wand text-base"></i> Random Pokemon
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filters & Action Row -->
+            <div id="controls-row" class="px-5 pb-5 flex flex-col md:flex-row gap-4 items-end">
+                
+                <!-- Game Filter -->
+                <div class="w-full md:w-auto flex-grow">
+                    <label for="genSelect" class="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2 ml-1">Region / Game</label>
+                    <div class="relative group">
+                        <select id="genSelect" class="w-full bg-black border border-neutral-700 text-neutral-200 text-sm rounded-xl px-4 py-3 pr-10 focus:ring-2 focus:ring-red-500/50 focus:border-red-500 focus:outline-none transition shadow-sm appearance-none cursor-pointer group-hover:border-neutral-600">
+                            <option value="all">National Dex (All)</option>
+                            <option value="gen1">Gen 1 - Kanto (Red/Blue)</option>
+                            <option value="gen2">Gen 2 - Johto (Gold/Silver)</option>
+                            <option value="gen3">Gen 3 - Hoenn (Emerald)</option>
+                            <option value="gen4">Gen 4 - Sinnoh (Platinum)</option>
+                            <option value="gen5">Gen 5 - Unova (B2/W2)</option>
+                            <option value="gen6">Gen 6 - Kalos (X/Y)</option>
+                            <option value="gen7">Gen 7 - Alola (Sun/Moon)</option>
+                            <option value="gen8">Gen 8 - Galar (Sw/Sh)</option>
+                            <option value="gen9">Gen 9 - Paldea (S/V)</option>
+                        </select>
+                        <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-500 group-hover:text-neutral-300 transition">
+                            <i class="ph-bold ph-caret-up-down"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quantity Input -->
+                <div class="w-full md:w-32" id="quantity-wrapper">
+                    <label for="countInput" class="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2 ml-1">Quantity</label>
+                    <div class="relative group">
+                        <input type="number" id="countInput" value="6" min="1" max="20" 
+                            class="w-full bg-black border border-neutral-700 text-neutral-200 text-sm rounded-xl px-4 py-3 focus:ring-2 focus:ring-red-500/50 focus:border-red-500 focus:outline-none transition text-center font-mono shadow-sm group-hover:border-neutral-600">
+                    </div>
+                </div>
+                
+                <!-- Randomize Button (Red/Pokeball is good, keeping it) -->
+                <button onclick="generateData()" id="action-btn" class="w-full md:w-auto bg-gradient-to-br from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-red-900/50 transition-all duration-200 transform active:scale-95 flex items-center justify-center gap-2">
+                    <i class="ph-fill ph-shuffle text-xl"></i> Randomize Pokémon
+                </button>
+            </div>
+            
+        </div>
+
+        <!-- Result Display Area -->
+        <div id="results-area" class="mt-8">
+            <h2 id="results-title" class="text-xl font-bold text-white mb-4 hidden">Your Randomized Selection:</h2>
+            <div id="loader" class="flex justify-center items-center py-10 hidden">
+                <div class="pokeball-spinner mr-4"></div>
+                <p class="text-lg font-semibold text-neutral-400">Catching Pokémon...</p>
+            </div>
+            <div id="results-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Data Cards will be injected here -->
+            </div>
+            <div id="quiz-container" class="hidden">
+                <!-- Quiz content will be injected here -->
+            </div>
+        </div>
+
+        <div id="status-message" class="text-center text-sm text-neutral-500 mt-8">
+            Select your filter and press "Randomize Pokémon" to begin!
+        </div>
+
+    </main>
+
+    <!-- Footer (simple dark footer) -->
+    <footer class="bg-neutral-900/80 border-t border-neutral-800 mt-12 py-4 text-center">
+        <p class="text-sm text-neutral-600">&copy; 2025 PokéRandomizer Z-A | Data from PokeAPI</p>
+    </footer>
+
+    <script>
+        // --- DATA STRUCTURES ---
+        const POKEMON_DATA = [
+            // Dummy data structure for demonstration
+            { id: 1, name: "Bulbasaur", primaryType: "grass", secondaryType: "poison", stats: { hp: 45, atk: 49, def: 49, satk: 65, sdef: 65, spd: 45 }, spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png", generation: 1 },
+            { id: 4, name: "Charmander", primaryType: "fire", secondaryType: null, stats: { hp: 39, atk: 52, def: 43, satk: 60, sdef: 50, spd: 65 }, spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/4.png", generation: 1 },
+            { id: 7, name: "Squirtle", primaryType: "water", secondaryType: null, stats: { hp: 44, atk: 48, def: 65, satk: 50, sdef: 64, spd: 43 }, spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/7.png", generation: 1 },
+            { id: 132, name: "Ditto", primaryType: "normal", secondaryType: null, stats: { hp: 48, atk: 48, def: 48, satk: 48, sdef: 48, spd: 48 }, spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/132.png", generation: 1 },
+            { id: 609, name: "Chandelure", primaryType: "ghost", secondaryType: "fire", stats: { hp: 60, atk: 55, def: 90, satk: 145, sdef: 90, spd: 80 }, spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/609.png", generation: 5 },
+            { id: 888, name: "Zacian", primaryType: "fairy", secondaryType: "steel", stats: { hp: 92, atk: 170, def: 115, satk: 80, sdef: 115, spd: 148 }, spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/888.png", generation: 8 },
+            { id: 900, name: "Kleavor", primaryType: "bug", secondaryType: "rock", stats: { hp: 70, atk: 135, def: 95, satk: 45, sdef: 70, spd: 85 }, spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/900.png", generation: 8 },
+            { id: 925, name: "Maushold", primaryType: "normal", secondaryType: null, stats: { hp: 74, atk: 75, def: 70, satk: 70, sdef: 75, spd: 111 }, spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/925.png", generation: 9 },
+            { id: 25, name: "Pikachu", primaryType: "electric", secondaryType: null, stats: { hp: 35, atk: 55, def: 40, satk: 50, sdef: 50, spd: 90 }, spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png", generation: 1 },
+            { id: 149, name: "Dragonite", primaryType: "dragon", secondaryType: "flying", stats: { hp: 91, atk: 134, def: 95, satk: 100, sdef: 100, spd: 80 }, spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/149.png", generation: 1 },
+            { id: 212, name: "Scizor", primaryType: "bug", secondaryType: "steel", stats: { hp: 70, atk: 130, def: 100, satk: 55, sdef: 80, spd: 65 }, spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/212.png", generation: 2 },
+            { id: 384, name: "Rayquaza", primaryType: "dragon", secondaryType: "flying", stats: { hp: 105, atk: 150, def: 90, satk: 150, sdef: 90, spd: 95 }, spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/384.png", generation: 3 },
+        ];
+
+        // DUMMY DATA FOR ITEMS
+        const ITEM_DATA = [
+            { name: "Focus Sash", description: "Survives a one-hit KO attack with 1 HP remaining. One-time use." },
+            { name: "Choice Scarf", description: "Boosts Speed, but permits the use of only one move." },
+            { name: "Leftovers", description: "Restores a small amount of the holder's HP at the end of every turn." },
+            { name: "Heavy-Duty Boots", description: "Protects the holder from the effects of entry hazards." },
+            { name: "Life Orb", description: "Boosts the power of moves by 30%, but the holder loses 1/10 of its max HP after each damaging attack." },
+            { name: "Assault Vest", description: "Raises Special Defense, but prevents the use of status moves." },
+            { name: "Eviolite", description: "Boots the Defense and Special Defense of a Pokémon that is not fully evolved." },
+            { name: "Rocky Helmet", description: "If hit by a direct attack, the attacker takes 1/8 of its max HP in damage." },
+            { name: "Flame Orb", description: "Inflicts a burn on the holder at the end of the turn." },
+            { name: "Toxic Orb", description: "Inflicts a bad poison on the holder at the end of the turn." },
+        ];
+
+        // DUMMY DATA FOR ABILITIES
+        const ABILITY_DATA = [
+            { name: "Protean", description: "Changes the Pokémon's type to the type of the move it is about to use." },
+            { name: "Intimidate", description: "Lowers the Attack stat of all opposing Pokémon when the Pokémon enters battle." },
+            { name: "Gale Wings", description: "Gives priority to Flying-type moves when the Pokémon's HP is full." },
+            { name: "Swift Swim", description: "Boosts the Pokémon's Speed stat in rain." },
+            { name: "Thick Fat", description: "Halves the damage taken from Fire and Ice-type moves." },
+            { name: "Unaware", description: "Ignores the opponent's stat changes when attacking or taking damage." },
+            { name: "Mold Breaker", description: "Moves used by the Pokémon ignore the effects of the target's Ability." },
+            { name: "Sheer Force", description: "Removes added effects to increase the power of moves lacking them." },
+        ];
+
+        // DUMMY DATA FOR MOVES
+        const MOVE_DATA = [
+            { name: "Close Combat", type: "Fighting", category: "Physical", power: 120, accuracy: 100, description: "Lowers the user's Defense and Special Defense stats after attack." },
+            { name: "Fairy Wind", type: "Fairy", category: "Special", power: 40, accuracy: 100, description: "A gentle yet powerful gust of wind is used to attack the target." },
+            { name: "Swords Dance", type: "Normal", category: "Status", power: '-', accuracy: '-', description: "Sharply raises the user's Attack stat." },
+            { name: "Thunder Wave", type: "Electric", category: "Status", power: '-', accuracy: 90, description: "A weak electric charge that paralyzes the target." },
+            { name: "Draco Meteor", type: "Dragon", category: "Special", power: 130, accuracy: 90, description: "Harsh attack that drastically lowers the user's Special Attack stat." },
+            { name: "U-Turn", type: "Bug", category: "Physical", power: 70, accuracy: 100, description: "The user attacks and immediately switches out with a waiting Pokémon." },
+        ];
+
+        const TYPE_MAP = {
+            "normal": "A8A77A", "fire": "EE8130", "water": "6390F0", "electric": "F7D02C", 
+            "grass": "7AC74C", "ice": "96D9D6", "fighting": "C22E28", "poison": "A33EA1", 
+            "ground": "E2BF65", "flying": "A98FF3", "psychic": "F95587", "bug": "A6B91A", 
+            "rock": "B6A136", "ghost": "735797", "dragon": "6F35FC", "dark": "705746", 
+            "steel": "B7B7CE", "fairy": "D685AD"
+        };
+
+        const GENERATION_RANGES = {
+            "gen1": { min: 1, max: 151 }, "gen2": { min: 152, max: 251 }, "gen3": { min: 252, max: 386 },
+            "gen4": { min: 387, max: 493 }, "gen5": { min: 494, max: 649 }, "gen6": { min: 650, max: 721 },
+            "gen7": { min: 722, max: 809 }, "gen8": { min: 810, max: 905 }, "gen9": { min: 906, max: 1025 }, // Up to a known Gen 9 cap for dummy data
+            "all": { min: 1, max: 1025 }
+        };
+
+        // --- GLOBAL STATE ---
+        let currentMainTab = 'randomizer';
+        let currentSubTab = 'pokemon';
+        let quizState = {
+            currentPokemon: null,
+            correctAnswer: null,
+            options: [],
+            isAnswered: false,
+        };
+
+        // --- UTILITY FUNCTIONS ---
+
+        /**
+         * Generates a random, closed SVG path data string that resembles a soft, organic blob.
+         * The shape is generated using cubic Bézier curves (C commands).
+         * @returns {string} SVG path data string.
+         */
+        function generateRandomBlobPath() {
+            // Start near the top center
+            let path = `M 50 ${10 + Math.random() * 10} C`;
+            const points = 8; // Number of curve segments
+            
+            for (let i = 0; i < points; i++) {
+                const angle = (i / points) * 2 * Math.PI;
+                const nextAngle = ((i + 1) / points) * 2 * Math.PI;
+                
+                // Randomize radius for point 1 (P1)
+                const radius1 = 30 + Math.random() * 20;
+                const x1 = 50 + radius1 * Math.cos(angle);
+                const y1 = 50 + radius1 * Math.sin(angle);
+                
+                // Randomize radius for control point 1 (C1)
+                const ctrlRadius1 = radius1 + (Math.random() * 10 - 5);
+                const ctrlX1 = 50 + ctrlRadius1 * Math.cos(angle + Math.PI / points * 0.5);
+                const ctrlY1 = 50 + ctrlRadius1 * Math.sin(angle + Math.PI / points * 0.5);
+
+                // Randomize radius for control point 2 (C2)
+                const ctrlRadius2 = radius1 + (Math.random() * 10 - 5);
+                const ctrlX2 = 50 + ctrlRadius2 * Math.cos(nextAngle - Math.PI / points * 0.5);
+                const ctrlY2 = 50 + ctrlRadius2 * Math.sin(nextAngle - Math.PI / points * 0.5);
+                
+                // Final point for this segment (P2)
+                let x2, y2;
+                if (i === points - 1) {
+                    // Last point connects to the start (M 50 Y_start)
+                    x2 = 50;
+                    y2 = 10 + Math.random() * 10;
+                } else {
+                    const radius2 = 30 + Math.random() * 20;
+                    x2 = 50 + radius2 * Math.cos(nextAngle);
+                    y2 = 50 + radius2 * Math.sin(nextAngle);
+                }
+
+                // Add Cubic Bezier curve segment (C C1_x C1_y, C2_x C2_y, P2_x P2_y)
+                path += `${ctrlX1} ${ctrlY1}, ${ctrlX2} ${ctrlY2}, ${x2} ${y2} `;
+            }
+
+            path += 'Z'; // Close the path
+            return path;
+        }
+
+        function renderStat(label, value, colorClass) {
+            // Determine stat bar width (max base stat is 255)
+            const widthPercentage = Math.min(100, (value / 180) * 100); 
+
+            return `
+                <div class="bg-black/50 p-3 rounded-xl border border-neutral-700/70 shadow-inner shadow-black/50 group hover:bg-black transition">
+                    <p class="text-xs font-medium text-neutral-400 uppercase tracking-widest mb-1">${label}</p>
+                    <p class="text-lg font-extrabold text-white mb-2">${value}</p>
+                    <!-- Stat Bar -->
+                    <div class="h-1.5 w-full bg-neutral-800 rounded-full overflow-hidden">
+                        <div class="h-full ${colorClass} transition-all duration-500 ease-out" style="width: ${widthPercentage}%;"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createPokemonCard(pokemon) {
+            const secondaryTypeHtml = pokemon.secondaryType 
+                ? `<span class="type-bg-${pokemon.secondaryType} text-xs font-semibold px-2 py-0.5 rounded-full uppercase shadow-sm">${pokemon.secondaryType}</span>`
+                : '';
+            
+            // Generate a random blob path for the background
+            const blobPath = generateRandomBlobPath();
+
+            return `
+                <div class="pokemon-card bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden shadow-xl shadow-black/70 animate-fade-in relative transition-all duration-300 hover:scale-[1.01] hover:border-red-500/50">
+                    
+                    <!-- Top Section: Sprite and Blob Background -->
+                    <div class="relative pt-12 pb-6 px-6 bg-neutral-950/50 flex flex-col items-center justify-end h-52">
+                        
+                        <!-- The Blob SVG Background -->
+                        <div class="absolute inset-0 opacity-10 blur-md scale-150 transition-transform duration-500">
+                            <svg class="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                <path d="${blobPath}" fill="currentColor" class="type-text-${pokemon.primaryType} transition-colors duration-500"/>
+                            </svg>
+                        </div>
+                        
+                        <!-- Dex Number -->
+                        <div class="absolute top-4 left-6 text-xs font-mono text-neutral-600 font-bold z-10">
+                            #${String(pokemon.id).padStart(4, '0')}
+                        </div>
+
+                        <!-- Sprite -->
+                        <img src="${pokemon.spriteUrl}" alt="${pokemon.name}" 
+                             onerror="this.onerror=null;this.src='https://placehold.co/128x128/171717/999999?text=Sprite%20N/A'"
+                             class="w-32 h-32 object-contain z-20 drop-shadow-lg transform transition-transform duration-300 hover:scale-110"
+                        >
+                    </div>
+
+                    <!-- Bottom Section: Info and Stats -->
+                    <div class="p-6">
+                        <!-- Name and Types -->
+                        <h3 class="text-3xl font-extrabold text-white mb-2 leading-tight">${pokemon.name}</h3>
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="type-bg-${pokemon.primaryType} text-xs font-semibold px-2 py-0.5 rounded-full uppercase shadow-sm">${pokemon.primaryType}</span>
+                            ${secondaryTypeHtml}
+                        </div>
+
+                        <!-- Stats Grid -->
+                        <div class="grid grid-cols-3 gap-3 text-center">
+                            ${renderStat("HP", pokemon.stats.hp, "bg-green-500")}
+                            ${renderStat("ATK", pokemon.stats.atk, "bg-red-500")}
+                            ${renderStat("DEF", pokemon.stats.def, "bg-yellow-500")}
+                            ${renderStat("SP ATK", pokemon.stats.satk, "bg-blue-500")}
+                            ${renderStat("SP DEF", pokemon.stats.sdef, "bg-teal-500")}
+                            ${renderStat("SPD", pokemon.stats.spd, "bg-purple-500")}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // FUNCTION TO RENDER ITEM/ABILITY/MOVE CARDS
+        function createDataCard(data, iconClass) {
+            let detailHtml = '';
+            if (currentSubTab === 'moves') {
+                const typeColor = TYPE_MAP[data.type.toLowerCase()] || '666';
+                detailHtml = `
+                    <div class="flex flex-wrap gap-2 mb-3">
+                        <span style="background-color: #${typeColor};" class="text-xs font-semibold px-2 py-0.5 rounded-full uppercase text-white shadow-sm">${data.type}</span>
+                        <span class="bg-neutral-800 text-neutral-300 text-xs font-semibold px-2 py-0.5 rounded-full shadow-sm">${data.category}</span>
+                        <span class="bg-neutral-800 text-neutral-300 text-xs font-semibold px-2 py-0.5 rounded-full shadow-sm">PWR: ${data.power}</span>
+                        <span class="bg-neutral-800 text-neutral-300 text-xs font-semibold px-2 py-0.5 rounded-full shadow-sm">ACC: ${data.accuracy}</span>
+                    </div>
+                `;
+            }
+            
+            const title = data.name;
+
+            return `
+                <div class="data-card p-6 bg-neutral-900 rounded-2xl border border-neutral-800 shadow-xl shadow-black/70 animate-fade-in relative transition-all duration-300 hover:border-red-500/50">
+                    <div class="flex items-start justify-between mb-3">
+                        <h3 class="text-2xl font-bold text-white leading-tight">${title}</h3>
+                        <i class="${iconClass} text-red-500 text-2xl mt-1"></i>
+                    </div>
+                    ${detailHtml}
+                    <p class="text-sm text-neutral-400 mt-2">${data.description}</p>
+                </div>
+            `;
+        }
+
+        // Helper for rendering detail sections within the Super Random card
+        function renderDetailSection(label, name, description, iconClass) {
+            return `
+                <div class="flex flex-col border-b border-neutral-800 last:border-b-0 pb-3">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="${iconClass} text-red-500 text-lg"></i>
+                        <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">${label}</p>
+                    </div>
+                    <p class="text-lg font-bold text-neutral-200">${name}</p>
+                    <p class="text-xs text-neutral-500 line-clamp-2">${description}</p>
+                </div>
+            `;
+        }
+
+        // NEW FUNCTION TO RENDER SUPER RANDOM POKE CARD
+        function createSuperRandomPokeCard(data) {
+            const pokemon = data.pokemon;
+            const secondaryTypeHtml = pokemon.secondaryType 
+                ? `<span class="type-bg-${pokemon.secondaryType} text-xs font-semibold px-2 py-0.5 rounded-full uppercase shadow-sm">${pokemon.secondaryType}</span>`
+                : '';
+            const blobPath = generateRandomBlobPath();
+
+            // Check if the move has specific details to display
+            const moveDetails = data.move.type && data.move.category && data.move.power && data.move.accuracy ? 
+                `Type: <span class="font-medium">${data.move.type}</span> | Cat: <span class="font-medium">${data.move.category}</span> | Pwr: <span class="font-medium">${data.move.power}</span>` : 
+                '';
+
+            return `
+                <div class="super-random-card bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden shadow-xl shadow-black/70 animate-fade-in relative transition-all duration-300 hover:scale-[1.01] hover:border-red-500/50">
+                    
+                    <!-- Header Section (Pokemon Info) -->
+                    <div class="relative pt-12 pb-6 px-6 bg-neutral-950/50 flex flex-col items-center justify-end h-52">
+                        <!-- Blob SVG Background -->
+                        <div class="absolute inset-0 opacity-10 blur-md scale-150 transition-transform duration-500">
+                            <svg class="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                <path d="${blobPath}" fill="currentColor" class="type-text-${pokemon.primaryType} transition-colors duration-500"/>
+                            </svg>
+                        </div>
+                        
+                        <div class="absolute top-4 left-6 text-xs font-mono text-neutral-600 font-bold z-10">
+                            #${String(pokemon.id).padStart(4, '0')}
+                        </div>
+                        <img src="${pokemon.spriteUrl}" alt="${pokemon.name}" 
+                             onerror="this.onerror=null;this.src='https://placehold.co/128x128/171717/999999?text=Sprite%20N/A'"
+                             class="w-32 h-32 object-contain z-20 drop-shadow-lg"
+                        >
+                    </div>
+
+                    <!-- Body Section (Name, Types, Details) -->
+                    <div class="p-6">
+                        <h3 class="text-3xl font-extrabold text-white mb-2 leading-tight">${pokemon.name}</h3>
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="type-bg-${pokemon.primaryType} text-xs font-semibold px-2 py-0.5 rounded-full uppercase shadow-sm">${pokemon.primaryType}</span>
+                            ${secondaryTypeHtml}
+                        </div>
+
+                        <div class="space-y-4 border-t border-neutral-800 pt-4">
+                            ${renderDetailSection("Held Item", data.item.name, data.item.description, "ph-fill ph-bag")}
+                            ${renderDetailSection("Ability", data.ability.name, data.ability.description, "ph-fill ph-lightning")}
+                            <div class="flex flex-col pb-3">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <i class="ph-fill ph-sword text-red-500 text-lg"></i>
+                                    <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Random Move</p>
+                                </div>
+                                <p class="text-lg font-bold text-neutral-200">${data.move.name}</p>
+                                ${moveDetails ? `<p class="text-xs text-neutral-300 mt-0.5 font-mono">${moveDetails}</p>` : ''}
+                                <p class="text-xs text-neutral-500 line-clamp-2 mt-1">${data.move.description}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function switchMainTab(tab) {
+            currentMainTab = tab;
+            document.querySelectorAll('.main-tab-btn').forEach(btn => {
+                if (btn.id === `main-tab-${tab}`) {
+                    btn.classList.add('bg-neutral-800', 'text-white', 'shadow-sm', 'ring-1', 'ring-white/10');
+                    btn.classList.remove('text-neutral-400', 'hover:text-neutral-200', 'hover:bg-neutral-800/50');
+                } else {
+                    btn.classList.remove('bg-neutral-800', 'text-white', 'shadow-sm', 'ring-1', 'ring-white/10');
+                    btn.classList.add('text-neutral-400', 'hover:text-neutral-200', 'hover:bg-neutral-800/50');
+                }
+            });
+
+            // Toggle visibility based on main tab
+            const randomizerSubTabs = document.getElementById('randomizerSubTabs');
+            const actionBtn = document.getElementById('action-btn');
+            const quantityWrapper = document.getElementById('quantity-wrapper');
+            const resultsContainer = document.getElementById('results-container');
+            const quizContainer = document.getElementById('quiz-container');
+            const resultsTitle = document.getElementById('results-title');
+
+            resultsContainer.innerHTML = '';
+            quizContainer.innerHTML = '';
+            resultsTitle.classList.add('hidden');
+            document.getElementById('status-message').textContent = 'Select your filter and press the action button to begin!';
+
+            if (tab === 'randomizer') {
+                randomizerSubTabs.classList.remove('hidden');
+                randomizerSubTabs.classList.add('animate-fade-in');
+                quantityWrapper.classList.remove('hidden');
+                // Ensure the action button text is set correctly for the current sub-tab
+                const subTabText = currentSubTab === 'superRandomPoke' ? 'Super Random Poke' : currentSubTab.charAt(0).toUpperCase() + currentSubTab.slice(1);
+                actionBtn.innerHTML = `<i class="ph-fill ph-shuffle text-xl"></i> Randomize ${subTabText}`;
+                actionBtn.onclick = generateData;
+                quizContainer.classList.add('hidden');
+                resultsContainer.classList.remove('hidden');
+            } else if (tab === 'quiz') {
+                randomizerSubTabs.classList.add('hidden');
+                quantityWrapper.classList.add('hidden');
+                actionBtn.innerHTML = `<i class="ph-fill ph-check-circle text-xl"></i> Start Quiz`;
+                actionBtn.onclick = startQuiz;
+                resultsContainer.classList.add('hidden');
+                quizContainer.classList.remove('hidden');
+                startQuiz(); // Auto-start the quiz when the tab is switched
+            } else if (tab === 'team') {
+                 // Team Builder logic placeholder
+                randomizerSubTabs.classList.add('hidden');
+                quantityWrapper.classList.remove('hidden'); // Quantity still useful for team size
+                actionBtn.innerHTML = `<i class="ph-fill ph-users-three text-xl"></i> Build Team`;
+                actionBtn.onclick = generateData; // Re-use randomizer for team for now
+                quizContainer.classList.add('hidden');
+                resultsContainer.classList.remove('hidden');
+                document.getElementById('status-message').textContent = 'Team builder coming soon! For now, use the randomizer to generate a team of Pokémon.';
+            }
+        }
+
+        function switchSubTab(subTab) {
+            currentSubTab = subTab;
+            document.querySelectorAll('.sub-tab-btn').forEach(btn => {
+                if (btn.id === `sub-tab-${subTab}`) {
+                    btn.classList.add('bg-neutral-800', 'text-white', 'shadow-sm');
+                    btn.classList.remove('text-neutral-400', 'hover:text-neutral-200', 'hover:bg-neutral-800/50');
+                } else {
+                    btn.classList.remove('bg-neutral-800', 'text-white', 'shadow-sm');
+                    btn.classList.add('text-neutral-400', 'hover:text-neutral-200', 'hover:bg-neutral-800/50');
+                }
+            });
+            
+            const subTabText = subTab === 'superRandomPoke' ? 'Full Pokemon' : subTab.charAt(0).toUpperCase() + subTab.slice(1);
+            document.getElementById('action-btn').innerHTML = `<i class="ph-fill ph-shuffle text-xl"></i> Randomize ${subTabText}`;
+        }
+
+
+        // --- MAIN LOGIC ---
+
+        function generateData() {
+            if (currentMainTab !== 'randomizer' && currentMainTab !== 'team') return;
+
+            // Show loader
+            const loader = document.getElementById('loader');
+            const container = document.getElementById('results-container');
+            const statusMessage = document.getElementById('status-message');
+            const resultsTitle = document.getElementById('results-title');
+
+            container.innerHTML = '';
+            loader.classList.remove('hidden');
+            statusMessage.textContent = '';
+            resultsTitle.classList.add('hidden');
+
+            const count = parseInt(document.getElementById('countInput').value) || 1;
+            const genFilter = document.getElementById('genSelect').value;
+            const range = GENERATION_RANGES[genFilter];
+            
+            // Adjust container grid classes for different card types
+            if (currentSubTab === 'superRandomPoke') {
+                // Super Random cards are dense, benefit from 1-column mobile, 2-column tablet, 2-column desktop
+                container.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6';
+            } else {
+                // Standard 1-column mobile, 2-column tablet, 3-column desktop for small cards
+                container.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
+            }
+
+
+            let dataList;
+            let titleText;
+            let iconClass;
+            let randomSelection = [];
+
+            if (currentSubTab === 'pokemon' || currentMainTab === 'team') {
+                dataList = POKEMON_DATA.filter(p => p.id >= range.min && p.id <= range.max);
+                titleText = "Pokémon Team";
+            } else if (currentSubTab === 'items') {
+                dataList = ITEM_DATA;
+                titleText = "Held Items";
+                iconClass = "ph-fill ph-bag";
+            } else if (currentSubTab === 'abilities') {
+                dataList = ABILITY_DATA;
+                titleText = "Abilities";
+                iconClass = "ph-fill ph-lightning";
+            } else if (currentSubTab === 'moves') {
+                dataList = MOVE_DATA;
+                titleText = "Moves";
+                iconClass = "ph-fill ph-sword";
+            } else if (currentSubTab === 'superRandomPoke') {
+                titleText = "Super Random Team";
+            } else {
+                dataList = [];
+                titleText = "Selection";
+            }
+
+
+            if (currentSubTab === 'superRandomPoke') {
+                // Special randomization logic for Super Random Poke
+                const availablePokemon = POKEMON_DATA.filter(p => p.id >= range.min && p.id <= range.max);
+                const itemsToSelect = Math.min(count, availablePokemon.length); 
+
+                if (availablePokemon.length === 0 || ITEM_DATA.length === 0 || ABILITY_DATA.length === 0 || MOVE_DATA.length === 0) {
+                    loader.classList.add('hidden');
+                    statusMessage.textContent = 'Not enough base data (Pokémon, Items, Abilities, or Moves) to create a Super Random Team.';
+                    return;
+                }
+
+                // Select unique Pokémon, but allow repeating Item/Ability/Move since they are global lists
+                let uniquePokemonList = [...availablePokemon];
+
+                for (let i = 0; i < itemsToSelect; i++) {
+                    // 1. Randomly select and remove a unique Pokémon
+                    const randomPokeIndex = Math.floor(Math.random() * uniquePokemonList.length);
+                    const pokemon = uniquePokemonList[randomPokeIndex];
+                    uniquePokemonList.splice(randomPokeIndex, 1);
+                    
+                    // 2. Randomly select an Item, Ability, and Move (can repeat)
+                    const randomItem = ITEM_DATA[Math.floor(Math.random() * ITEM_DATA.length)];
+                    const randomAbility = ABILITY_DATA[Math.floor(Math.random() * ABILITY_DATA.length)];
+                    const randomMove = MOVE_DATA[Math.floor(Math.random() * MOVE_DATA.length)];
+
+                    randomSelection.push({
+                        pokemon: pokemon,
+                        item: randomItem,
+                        ability: randomAbility,
+                        move: randomMove
+                    });
+                }
+            } else {
+                 // Standard randomization logic (Pokémon, Item, Ability, Move)
+                if (dataList.length === 0) {
+                    loader.classList.add('hidden');
+                    statusMessage.textContent = 'No data found for the selected category.';
+                    return;
+                }
+
+                let availableData = [...dataList];
+                const itemsToSelect = Math.min(count, availableData.length);
+
+                for (let i = 0; i < itemsToSelect; i++) {
+                    const randomIndex = Math.floor(Math.random() * availableData.length);
+                    randomSelection.push(availableData[randomIndex]);
+                    availableData.splice(randomIndex, 1);
+                }
+            }
+
+
+            // Simulate API delay
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                resultsTitle.classList.remove('hidden');
+                resultsTitle.textContent = `Your Randomized ${titleText}:`;
+
+                if (currentSubTab === 'pokemon' || currentMainTab === 'team') {
+                    // Display Pokémon Cards
+                    const html = randomSelection.map(createPokemonCard).join('');
+                    container.innerHTML = html;
+                    statusMessage.textContent = `Generated ${randomSelection.length} unique random Pokémon from the ${genFilter.toUpperCase()} region.`;
+                } else if (currentSubTab === 'superRandomPoke') {
+                    // Display Super Random Poke Cards
+                    const html = randomSelection.map(createSuperRandomPokeCard).join('');
+                    container.innerHTML = html;
+                    statusMessage.textContent = `Generated ${randomSelection.length} unique Super Random Pokémon slots.`;
+                }
+                else {
+                    // Display general data cards (Items, Abilities, Moves)
+                    const html = randomSelection.map(data => createDataCard(data, iconClass)).join('');
+                    container.innerHTML = html;
+                    statusMessage.textContent = `Generated ${randomSelection.length} unique random ${currentSubTab}.`;
+                }
+            }, 800);
+        }
+
+        // --- QUIZ LOGIC ---
+
+        function startQuiz() {
+            const quizContainer = document.getElementById('quiz-container');
+            const resultsTitle = document.getElementById('results-title');
+            const statusMessage = document.getElementById('status-message');
+
+            resultsTitle.classList.add('hidden');
+            statusMessage.textContent = 'Guess the Pokémon!';
+            quizContainer.innerHTML = '';
+            quizState.isAnswered = false;
+
+            // 1. Select the current Pokémon and 3 random distractors
+            const correctIndex = Math.floor(Math.random() * POKEMON_DATA.length);
+            quizState.currentPokemon = POKEMON_DATA[correctIndex];
+            quizState.correctAnswer = quizState.currentPokemon.name;
+
+            let distractors = [];
+            const allNames = POKEMON_DATA.map(p => p.name);
+            let availableNames = allNames.filter(name => name !== quizState.correctAnswer);
+
+            // Select up to 3 distractors
+            const numDistractors = Math.min(3, availableNames.length);
+
+            for (let i = 0; i < numDistractors; i++) {
+                const randIndex = Math.floor(Math.random() * availableNames.length);
+                distractors.push(availableNames[randIndex]);
+                availableNames.splice(randIndex, 1); // Remove to prevent duplicates
+            }
+            
+            // Handle case where less than 4 unique Pokémon are available (optional for mock data)
+            if (POKEMON_DATA.length < 4) {
+                 // Fallback: If not enough data, just use the available ones, including the answer
+                 quizState.options = POKEMON_DATA.map(p => p.name);
+            } else {
+                // 2. Combine and shuffle options
+                quizState.options = [...distractors, quizState.correctAnswer];
+                quizState.options.sort(() => Math.random() - 0.5);
+            }
+
+            // 3. Render the quiz question
+            renderQuizQuestion();
+        }
+
+        function renderQuizQuestion() {
+            const p = quizState.currentPokemon;
+            const quizContainer = document.getElementById('quiz-container');
+            
+            // Generate a random blob path for the background
+            const blobPath = generateRandomBlobPath();
+
+            quizContainer.innerHTML = `
+                <div class="flex flex-col items-center p-6 bg-neutral-900 border border-neutral-800 rounded-2xl shadow-xl shadow-black/70 animate-fade-in">
+                    <h3 class="text-xl font-bold text-white mb-4">Who's That Pokémon?</h3>
+                    
+                    <!-- Pokémon Silhouette with Blob Background -->
+                    <div class="relative w-48 h-48 mb-6 bg-neutral-950/50 rounded-lg overflow-hidden flex items-center justify-center border border-neutral-700">
+                         <!-- The Blob SVG Background -->
+                        <div class="absolute inset-0 opacity-10 blur-md scale-150 transition-transform duration-500">
+                            <svg class="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                <path d="${blobPath}" fill="currentColor" class="type-text-${p.primaryType} transition-colors duration-500"/>
+                            </svg>
+                        </div>
+
+                        <img id="quiz-sprite" src="${p.spriteUrl}" alt="Silhouette" 
+                            class="w-32 h-32 object-contain silhouette z-20"
+                            onerror="this.onerror=null;this.src='https://placehold.co/128x128/171717/999999?text=Sprite%20N/A%20Quiz'"
+                        >
+                    </div>
+
+                    <!-- Options Grid -->
+                    <div id="quiz-options" class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-md">
+                        ${quizState.options.map(option => `
+                            <button onclick="checkAnswer(this, '${option}')" data-answer="${option}"
+                                class="quiz-option-btn bg-neutral-800 border-2 border-neutral-700 text-white py-3 rounded-xl font-bold transition-all duration-150 hover:bg-neutral-700 active:scale-[0.98] disabled:cursor-not-allowed">
+                                ${option}
+                            </button>
+                        `).join('')}
+                    </div>
+
+                    <button id="next-quiz-btn" onclick="startQuiz()" class="mt-6 bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-xl font-semibold transition hidden">
+                        Next Question
+                    </button>
+                </div>
+            `;
+        }
+
+        function checkAnswer(selectedButton, selectedAnswer) {
+            if (quizState.isAnswered) return;
+            quizState.isAnswered = true;
+
+            const isCorrect = selectedAnswer === quizState.correctAnswer;
+            const statusMessage = document.getElementById('status-message');
+            const sprite = document.getElementById('quiz-sprite');
+            const nextButton = document.getElementById('next-quiz-btn');
+
+            // Reveal the sprite
+            sprite.classList.add('revealed');
+
+            // Simple styling for the selected button
+            if (isCorrect) {
+                selectedButton.classList.add('bg-green-600', 'hover:bg-green-500', 'border-green-400');
+                selectedButton.classList.remove('bg-neutral-800', 'hover:bg-neutral-700', 'border-neutral-700');
+            } else {
+                selectedButton.classList.add('bg-red-600', 'hover:bg-red-500', 'border-red-400');
+                selectedButton.classList.remove('bg-neutral-800', 'hover:bg-neutral-700', 'border-neutral-700');
+            }
+
+            // Disable all buttons
+            document.querySelectorAll('.quiz-option-btn').forEach(btn => {
+                btn.disabled = true;
+            });
+
+            // Update status message
+            if (isCorrect) {
+                statusMessage.textContent = `Correct! It's ${quizState.currentPokemon.name}.`;
+            } else {
+                statusMessage.textContent = `Whoops! That's incorrect. It was ${quizState.currentPokemon.name}.`;
+            }
+
+            // Show next button
+            nextButton.classList.remove('hidden');
+        }
+
+
+        // --- INITIALIZATION ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set initial tab state
+            switchMainTab('randomizer');
+            switchSubTab('pokemon');
+            
+            document.getElementById('status-message').textContent = 'Select your filter and press "Randomize Pokémon" to begin!';
+        });
+    </script>
+</body>
+</html>
