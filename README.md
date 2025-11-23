@@ -14,8 +14,6 @@ Bored? Randomize some Pokémon. Need a team? Let chance decide. Think you know P
 
 Filter by Gen 1-9 or just grab from everything. Want 1? 20? You decide. No duplicates in a single pull.
 
-The dark theme with red Pokéball vibes looks clean, animations are smooth, works on your phone.
-
 ## What You See
 
 - **Pokémon**: Dex number, sprite, types, all 6 stats with bars
