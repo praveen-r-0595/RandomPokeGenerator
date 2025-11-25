@@ -1,10 +1,10 @@
-# PokéRandomizer
+# RandomPokeinatorm
 
-Bored? Randomize some Pokémon. Need a team? Let chance decide. Think you know Pokémon? Prove it.
+Its a hobby project and bound to have errors. Do suggest any changes are bug fixes you come across.  
 
 ## What's Inside
 
-- **Randomizer**: Pick random Pokémon, moves, abilities, or items. Or go full chaos mode and randomize all at once
+- **Randomizer**: Pick random Pokémon, moves, abilities, or items. Or choose chaos mode and randomize all at once
 - **Team Builder**: Coming soon (basically randomizer v2 but with more structure)
 - **Quiz**: "Who's That Pokémon?" - guess the silhouette, test your knowledge
 
@@ -37,15 +37,6 @@ Gen 1-9 + National Dex. Pick your era.
 3. **Randomizer**: Pick a category → pick a gen → set how many → hit randomize
 4. **Quiz**: See the silhouette → pick your answer → check if you were right
 
-## To-Do
-
-- [ ] Hook up real PokeAPI data
-- [ ] Actual team builder with save/export
-- [ ] More quiz difficulty options
-- [ ] Better type filtering
-
 ## Real Quick
 
-This is just a fun project. Currently has dummy data, but it's built to work with PokeAPI whenever.
-
-Unofficial - not affiliated with Pokémon or The Pokémon Company.
+This is nothing to do with Official Pokemon - not affiliated with Pokémon or The Pokémon Company, just a fun project of mine.
