@@ -372,13 +372,15 @@
             const movesData = await apiFetch(`${POKEAPI_BASE_URL}/move?limit=1000`); // ~900+ moves
             const movePromises = movesData.results.map(move => apiFetch(move.url));
             const moveDetails = await Promise.all(movePromises);
+            const romanToNum = { 'i': 1, 'ii': 2, 'iii': 3, 'iv': 4, 'v': 5, 'vi': 6, 'vii': 7, 'viii': 8, 'ix': 9 };
             allMoves = moveDetails.map(m => ({
                 name: m.name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
                 description: m.effect_entries.find(e => e.language.name === 'en')?.short_effect?.replace('$effect_chance', m.effect_chance) || 'No description available.',
                 type: m.type.name.charAt(0).toUpperCase() + m.type.name.slice(1),
                 category: m.damage_class.name.charAt(0).toUpperCase() + m.damage_class.name.slice(1),
                 power: m.power ?? '-',
-                accuracy: m.accuracy ?? '-'
+                accuracy: m.accuracy ?? '-',
+                generation: romanToNum[m.generation.name.split('-')[1]]
             }));
         }
 
@@ -454,6 +456,24 @@
             }
 
             return filteredByIndex;
+        }
+
+        function filterMoves() {
+            const generationFilter = document.getElementById('genSelect').value; // e.g., "gen4"
+            const selectedGeneration = generationFilter === 'all' ? 99 : parseInt(generationFilter.replace('gen', '')); // 4
+
+            // 1. Filter by Generation
+            let filteredMoves = allMoves;
+            if (generationFilter !== 'all') {
+                filteredMoves = allMoves.filter(m => m.generation <= selectedGeneration);
+            }
+
+            // 2. Filter by Type
+            if (selectedTypes.size > 0) {
+                filteredMoves = filteredMoves.filter(m => selectedTypes.has(m.type.toLowerCase()));
+            }
+
+            return filteredMoves;
         }
         
         // --- UTILITY FUNCTIONS ---
@@ -984,8 +1004,17 @@
                     htmlContent = randomizedData.map(a => createDataCard(a, "ph-fill ph-lightning")).join('');
 
                 } else if (currentSubTab === 'moves') {
+                    const filteredMoves = filterMoves();
+
+                    if (filteredMoves.length === 0) {
+                         htmlContent = `<div class="md:col-span-2 lg:col-span-3 text-center py-10 text-lg text-neutral-500">
+                            No moves found matching the selected Generation and Type filters. Please adjust your criteria.
+                        </div>`;
+                        throw new Error("No moves found.");
+                    }
+
                     titleText = `${count} Random Moves:`;
-                    randomizedData = getRandomElements(allMoves, count);
+                    randomizedData = getRandomElements(filteredMoves, count);
                     htmlContent = randomizedData.map(m => createDataCard(m, "ph-fill ph-sword")).join('');
 
                 } else if (currentSubTab === 'items') {
@@ -1091,7 +1120,7 @@
             let btnText = 'Randomize Data';
             let statusText = 'Select your quantity and press "Randomize Data" to begin!';
 
-            const needsPokemonFilters = (tab === 'pokemon' || tab === 'superRandomPoke');
+            const needsPokemonFilters = (tab === 'pokemon' || tab === 'superRandomPoke' || tab === 'moves');
 
             if (needsPokemonFilters) {
                 genSelectWrapper.classList.remove('hidden');
