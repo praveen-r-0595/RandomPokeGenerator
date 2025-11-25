@@ -1,4 +1,4 @@
-# RandomPokeinatorm
+# RandomPokeinator
 
 Its a hobby project and bound to have errors. Do suggest any changes are bug fixes you come across.  
 
