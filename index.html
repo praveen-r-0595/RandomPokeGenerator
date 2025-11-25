@@ -265,39 +265,13 @@
             "all": { min: 1, max: 1025 }
         };
 
-        // Static or derived data for other randomizer tabs (items, abilities, moves)
-        const ITEM_DATA = [
-            { name: "Focus Sash", description: "Survives a one-hit KO attack with 1 HP remaining. One-time use." },
-            { name: "Choice Scarf", description: "Boosts Speed, but permits the use of only one move." },
-            { name: "Leftovers", description: "Restores a small amount of the holder's HP at the end of every turn." },
-            { name: "Heavy-Duty Boots", description: "Protects the holder from the effects of entry hazards." },
-            { name: "Life Orb", description: "Boosts the power of moves by 30%, but the holder loses 1/10 of its max HP after each damaging attack." },
-            { name: "Assault Vest", description: "Raises Special Defense, but prevents the use of status moves." },
-            { name: "Eviolite", description: "Boots the Defense and Special Defense of a Pokémon that is not fully evolved." },
-            { name: "Rocky Helmet", description: "If hit by a direct attack, the attacker takes 1/8 of its max HP in damage." },
-        ];
-        const ABILITY_DATA = [
-            { name: "Protean", description: "Changes the Pokémon's type to the type of the move it is about to use." },
-            { name: "Intimidate", description: "Lowers the Attack stat of all opposing Pokémon when the Pokémon enters battle." },
-            { name: "Gale Wings", description: "Gives priority to Flying-type moves when the Pokémon's HP is full." },
-            { name: "Swift Swim", description: "Boosts the Pokémon's Speed stat in rain." },
-            { name: "Thick Fat", description: "Halves the damage taken from Fire and Ice-type moves." },
-            { name: "Unaware", description: "Ignores the opponent's stat changes when attacking or taking damage." },
-            { name: "Mold Breaker", description: "Moves used by the Pokémon ignore the effects of the target's Ability." },
-            { name: "Sheer Force", description: "Removes added effects to increase the power of moves lacking them." },
-        ];
-        const MOVE_DATA = [
-            { name: "Close Combat", type: "Fighting", category: "Physical", power: 120, accuracy: 100, description: "Lowers the user's Defense and Special Defense stats after attack." },
-            { name: "Fairy Wind", type: "Fairy", category: "Special", power: 40, accuracy: 100, description: "A gentle yet powerful gust of wind is used to attack the target." },
-            { name: "Swords Dance", type: "Normal", category: "Status", power: '-', accuracy: '-', description: "Sharply raises the user's Attack stat." },
-            { name: "Thunder Wave", type: "Electric", category: "Status", power: '-', accuracy: 90, description: "A weak electric charge that paralyzes the target." },
-            { name: "Draco Meteor", type: "Dragon", category: "Special", power: 130, accuracy: 90, description: "Harsh attack that drastically lowers the user's Special Attack stat." },
-            { name: "U-Turn", type: "Bug", category: "Physical", power: 70, accuracy: 100, description: "The user attacks and immediately switches out with a waiting Pokémon." },
-        ];
         
         // Runtime state
         let allPokemonIndex = []; // { id, name, url } for all Pokémon
         let typeData = {}; // { typeName: [pokemonId1, pokemonId2, ...], ...}
+        let allAbilities = []; // Will be fetched from API
+        let allItems = []; // Will be fetched from API
+        let allMoves = []; // Will be fetched from API
         let currentMainTab = 'randomizer';
         let currentSubTab = 'pokemon';
         let selectedTypes = new Set();
@@ -338,7 +312,7 @@
                 // Map results to { id, name, url } and filter out non-standard forms based on URL ID
                 allPokemonIndex = data.results.map((p, index) => ({
                     id: index + 1,
-                    name: p.name.charAt(0).toUpperCase() + p.name.slice(1),
+                    name: formatApiName(p.name),
                     url: p.url
                 })).filter(p => p.id <= GENERATION_RANGES.all.max);
             }
@@ -369,6 +343,55 @@
                 typeData[res.type] = res.ids;
             });
         }
+
+        /**
+         * Step 1c: Fetches and processes data for abilities, moves, and items.
+         */
+        async function fetchOtherData() {
+            // Fetch Abilities
+            const abilitiesData = await apiFetch(`${POKEAPI_BASE_URL}/ability?limit=300`); // ~298 abilities
+            const abilityPromises = abilitiesData.results.map(ability => apiFetch(ability.url));
+            const abilitiesDetails = await Promise.all(abilityPromises);
+            allAbilities = abilitiesDetails.map(a => ({
+                name: a.name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+                description: a.effect_entries.find(e => e.language.name === 'en')?.short_effect || 'No description available.'
+            }));
+
+            // Fetch Items
+            const itemsData = await apiFetch(`${POKEAPI_BASE_URL}/item?limit=1000`); // ~950+ items
+            const itemPromises = itemsData.results.map(item => apiFetch(item.url));
+            const itemDetails = await Promise.all(itemPromises);
+            allItems = itemDetails
+                .filter(i => i.attributes.some(attr => attr.name === 'holdable')) // Only holdable items
+                .map(i => ({
+                    name: i.name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+                    description: i.effect_entries.find(e => e.language.name === 'en')?.short_effect || 'No description available.'
+                }));
+
+            // Fetch Moves
+            const movesData = await apiFetch(`${POKEAPI_BASE_URL}/move?limit=1000`); // ~900+ moves
+            const movePromises = movesData.results.map(move => apiFetch(move.url));
+            const moveDetails = await Promise.all(movePromises);
+            allMoves = moveDetails.map(m => ({
+                name: m.name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+                description: m.effect_entries.find(e => e.language.name === 'en')?.short_effect?.replace('$effect_chance', m.effect_chance) || 'No description available.',
+                type: m.type.name.charAt(0).toUpperCase() + m.type.name.slice(1),
+                category: m.damage_class.name.charAt(0).toUpperCase() + m.damage_class.name.slice(1),
+                power: m.power ?? '-',
+                accuracy: m.accuracy ?? '-'
+            }));
+        }
+
+        /**
+         * Capitalizes and formats names from the API (e.g., "close-combat" -> "Close Combat").
+         */
+        function formatApiName(name) {
+            if (!name) return '';
+            return name
+                .split('-')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+        }
         
         /**
          * Step 2: Fetches the detailed data for a single Pokémon ID.
@@ -382,7 +405,7 @@
             // Simplify and normalize data structure
             const normalizedData = {
                 id: data.id,
-                name: data.name.charAt(0).toUpperCase() + data.name.slice(1),
+                name: formatApiName(data.name),
                 primaryType: data.types[0].type.name,
                 secondaryType: data.types.length > 1 ? data.types[1].type.name : null,
                 stats: {
@@ -934,9 +957,9 @@
                         titleText = `${finalCount} Complete Pokémon Random Setups:`;
                         
                         for (const pokemon of detailedPokemon) {
-                            const randomAbility = getRandomElements(ABILITY_DATA, 1)[0];
-                            const randomItem = getRandomElements(ITEM_DATA, 1)[0];
-                            const randomMove = getRandomElements(MOVE_DATA, 1)[0];
+                            const randomAbility = getRandomElements(allAbilities, 1)[0];
+                            const randomItem = getRandomElements(allItems, 1)[0];
+                            const randomMove = getRandomElements(allMoves, 1)[0];
 
                             randomizedData.push({
                                 pokemon: pokemon,
@@ -957,17 +980,17 @@
                     
                 } else if (currentSubTab === 'abilities') {
                     titleText = `${count} Random Abilities:`;
-                    randomizedData = getRandomElements(ABILITY_DATA, count);
+                    randomizedData = getRandomElements(allAbilities, count);
                     htmlContent = randomizedData.map(a => createDataCard(a, "ph-fill ph-lightning")).join('');
 
                 } else if (currentSubTab === 'moves') {
                     titleText = `${count} Random Moves:`;
-                    randomizedData = getRandomElements(MOVE_DATA, count);
+                    randomizedData = getRandomElements(allMoves, count);
                     htmlContent = randomizedData.map(m => createDataCard(m, "ph-fill ph-sword")).join('');
 
                 } else if (currentSubTab === 'items') {
                     titleText = `${count} Random Items:`;
-                    randomizedData = getRandomElements(ITEM_DATA, count);
+                    randomizedData = getRandomElements(allItems, count);
                     htmlContent = randomizedData.map(i => createDataCard(i, "ph-fill ph-bag")).join('');
                 }
             } catch (error) {
@@ -1108,11 +1131,14 @@
             loader.classList.remove('hidden');
 
             try {
-                // 1. Fetch the full list of Pokémon and Type indices in parallel
-                loaderMessage.textContent = 'Fetching Pokémon index (1/2)...';
-                await fetchPokemonIndex();
-                loaderMessage.textContent = 'Fetching Type data (2/2)...';
-                await fetchTypeIndex();
+                // 1. Fetch all required data in parallel
+                loaderMessage.textContent = 'Fetching Pokémon index...';
+                const pokemonIndexPromise = fetchPokemonIndex();
+                loaderMessage.textContent = 'Fetching Type data...';
+                const typeIndexPromise = fetchTypeIndex();
+                loaderMessage.textContent = 'Fetching Abilities, Items, & Moves...';
+                const otherDataPromise = fetchOtherData();
+                await Promise.all([pokemonIndexPromise, typeIndexPromise, otherDataPromise]);
 
                 // 2. Setup initial UI state
                 switchMainTab('randomizer');
